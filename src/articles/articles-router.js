@@ -1,4 +1,6 @@
 const path = require('path')
+// To fix this issue (double slashes //), we can use one of Node's internal modules called "path" which supports a method called ".join" to calculate a valid path without any double slashes. As Windows paths are \ rather than /, we will use the posix variant of the join method to create a web valid path
+//Note: POSIX is an attempt to standardize UNIX systems, e.g. Linux and Mac. It's easier to port applications between systems that support POSIX.
 const express = require('express')
 const xss = require('xss')
 const ArticlesService = require('./articles-service')
@@ -11,7 +13,8 @@ const serializeArticle = article => ({
     style: article.style,
     title: xss(article.title),
     content: xss(article.content),
-    date_published: article.date_published
+    date_published: article.date_published,
+    author: article.author,
 })
 
 articlesRouter
@@ -26,7 +29,8 @@ articlesRouter
       .catch(next)
   })
   .post(jsonParser, (req, res, next) => {
-    const { title, content, style } = req.body
+    const { title, content, style, author } = req.body
+    // since author is not absolutely required we can skip validating it
     const newArticle = { title, content, style }
 
     for (const [key, value] of Object.entries(newArticle)) {
@@ -36,7 +40,8 @@ articlesRouter
             })
         }
     }
-
+    // needs error handling for submitting an invalid "style" value
+    newArticle.author = author
     ArticlesService.insertArticle(
       req.app.get('db'),
       newArticle
